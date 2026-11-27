@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>LiftFlow v5 - トレーニング記録</title>
+<title>LiftFlow v7 - トレーニング記録</title>
 <style>
 :root{
   --bg:#0d0f12; --panel:#151920; --panel2:#1b2028; --line:#2a313d;
@@ -11,7 +11,7 @@
   --warn:#ffd166; --danger:#ff7a90; --ok:#7ee787; --shadow:0 16px 40px rgba(0,0,0,.28);
 }
 *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b0d10,#12161c 50%,#0b0d10);color:var(--text);font-family:Inter,"Noto Sans JP",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
-button,input{font:inherit} button{cursor:pointer}
+button,input,textarea,select{font:inherit} button{cursor:pointer}
 .app{width:min(100%,520px);margin:0 auto;min-height:100vh;padding:20px 16px 110px}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.brand{font-size:24px;font-weight:900;letter-spacing:.02em}.brand span{color:var(--accent)}
 .iconbtn{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
@@ -70,6 +70,25 @@ button,input{font:inherit} button{cursor:pointer}
   .rep-control .num span{display:none}
   .setcheck{height:46px}
 }
+/* iOS Safari prevents focus zoom for input text at 16px or more */
+input[type="number"],input[type="text"],textarea,select,.rep-control .num input,.weight-control .num input{font-size:16px!important}
+html,body{max-width:100%;overflow-x:hidden}
+.exercise-page{min-width:100%;max-width:100%;overflow:hidden}
+.exercise-card{min-width:0}
+.setrow{width:100%;min-width:0}
+.note-wrap{margin-top:16px}.note-label{display:flex;justify-content:space-between;margin-bottom:7px;color:var(--muted);font-size:13px}
+.note-input{width:100%;resize:vertical;min-height:70px;padding:12px;border-radius:12px;border:1px solid var(--line);background:#10151b;color:var(--text)}
+.add-during{margin:10px 0 14px;border:1px dashed #607b5b;background:#17221a;color:#d9ffcc;border-radius:13px;padding:12px;width:100%;font-weight:800}
+.dialog-backdrop{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.74);display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog-box{width:min(100%,450px);max-height:90dvh;overflow:auto;border-radius:20px;border:1px solid var(--line);background:#191f27;padding:18px}
+.dialog-box h3{margin:0 0 12px}.dialog-box label{display:block;color:#c8d1d9;font-size:13px;margin:12px 0 6px}
+.dialog-box input,.dialog-box select{width:100%;min-width:0;padding:12px;border-radius:12px;border:1px solid var(--line);background:#10151b;color:white}
+.dialog-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.dialog-buttons button{padding:13px;border-radius:12px;border:1px solid var(--line);background:#242e38;color:white;font-weight:800}
+.dialog-buttons .confirm-add{background:var(--accent);color:#102015}
+.suggestion button.chosen{background:var(--accent);color:#091309;border-color:var(--accent);font-weight:900}
+.suggestion .selected-result{font-weight:800;color:var(--accent2);margin-top:10px}
+@media(max-width:390px){.setrow{grid-template-columns:23px minmax(0,1.65fr) minmax(0,1.1fr) 35px;gap:3px}.weight-step{width:24px;flex-basis:24px}.rep-step{width:23px;min-width:23px}.weight-control,.rep-control{gap:2px}.weight-control .num input{padding-left:0;padding-right:13px}.rep-control .num input{padding-left:0;padding-right:0}.weight-control .num span{right:1px}}
 </style>
 </head>
 <body>
@@ -117,6 +136,7 @@ button,input{font:inherit} button{cursor:pointer}
     </div>
     <div class="progress"><div id="progressBar"></div></div>
     <div class="mini-nav" id="miniNav"></div>
+    <button type="button" id="addDuringWorkout" class="add-during">＋ トレーニング中に種目を追加</button>
     <div class="carousel-wrap" id="carouselWrap"><div class="carousel" id="carousel"></div></div>
     <div class="navrow" id="dots"></div>
     <div class="workout-actions"><button class="secondary" id="prevEx">← 前の種目</button><button class="secondary" id="nextEx">次の種目 →</button></div>
@@ -132,6 +152,17 @@ button,input{font:inherit} button{cursor:pointer}
       <div class="history" id="summaryHistory"></div>
     </div>
     <div style="margin-top:12px"><button class="primary" id="doneBtn">ホームへ戻る</button></div>
+  </div>
+</div>
+<div id="addExerciseDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+  <div class="dialog-box">
+    <h3 id="dialogTitle">種目を追加</h3>
+    <div class="sub">トレーニングを中断せずに追加できます。登録済みの種目も、新しい種目もOK。</div>
+    <label for="duringPart">部位</label><select id="duringPart"></select>
+    <label for="duringExisting">登録済みの種目から選択</label><select id="duringExisting"></select>
+    <label for="duringNew">または新しい種目名を入力</label><input id="duringNew" type="text" maxlength="50" placeholder="例：ダンベルフライ" autocomplete="off">
+    <div class="sub" style="margin-top:8px">新しい種目はメニュー設定にも登録されます。</div>
+    <div class="dialog-buttons"><button type="button" id="cancelAdd">キャンセル</button><button type="button" class="confirm-add" id="confirmAdd">＋ 追加</button></div>
   </div>
 </div>
 <script>
@@ -203,15 +234,43 @@ function renderSettings(){
   });
 }
 function closeSettings(){save();renderHome();show('homeView')}
+function createWorkoutExercise(name){
+  const src=clone(data.exercises[name]||{weight:0,weights:[0,0,0],reps:[10,10,10],best:'未記録',oneRM:0,last:'',target:12});
+  const reps=clone(src.reps||[10,10,10]);
+  const weights=clone(src.weights||reps.map(()=>Number(src.weight)||0));
+  return {name,...src,step:Number(data.weightStep),currentReps:reps,currentWeights:weights,completed:reps.map(()=>false),feeling:'普通',acceptedNext:null,decision:null,note:src.note||''};
+}
+function openAddDialog(){
+  const parts=document.getElementById('duringPart');parts.innerHTML='';
+  Object.keys(data.parts).forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;parts.appendChild(opt)});
+  parts.value=workout.parts[0]||Object.keys(data.parts)[0];
+  document.getElementById('duringNew').value='';
+  updateExistingOptions();
+  document.getElementById('addExerciseDialog').classList.remove('hidden');
+}
+function updateExistingOptions(){
+  const p=document.getElementById('duringPart').value;
+  const sel=document.getElementById('duringExisting');sel.innerHTML='';
+  const defaultOpt=document.createElement('option');defaultOpt.value='';defaultOpt.textContent='種目を選択してください';sel.appendChild(defaultOpt);
+  (data.parts[p]?.exercises||[]).forEach(name=>{if(workout.exercises.some(x=>x.name===name))return;const opt=document.createElement('option');opt.value=name;opt.textContent=name;sel.appendChild(opt)});
+}
+function closeAddDialog(){document.getElementById('addExerciseDialog').classList.add('hidden')}
+function addDuringWorkout(){
+  const part=document.getElementById('duringPart').value;
+  const typed=document.getElementById('duringNew').value.trim().replace(/\s+/g,' ');
+  const name=typed||document.getElementById('duringExisting').value;
+  if(!name){alert('種目を選択するか、新しい種目名を入力してください。');return}
+  if(workout.exercises.some(x=>x.name===name)){alert('この種目は今日のメニューに追加済みです。');return}
+  if(!data.parts[part].exercises.includes(name))data.parts[part].exercises.push(name);
+  if(!data.exercises[name])data.exercises[name]={weight:0,weights:[0,0,0],reps:[10,10,10],best:'未記録',oneRM:0,last:'',target:12,note:''};
+  if(!workout.parts.includes(part))workout.parts.push(part);
+  workout.exercises.push(createWorkoutExercise(name));
+  save();closeAddDialog();currentIndex=workout.exercises.length-1;renderWorkout();
+}
 function startWorkout(){
   const ex=[];[...selectedParts].forEach(p=>data.parts[p].exercises.forEach(n=>{if(!ex.includes(n))ex.push(n)}));
   if(!ex.length){alert('種目が登録されていません。メニュー設定から追加してください。');return}
-  workout={parts:[...selectedParts],start:Date.now(),exercises:ex.map(name=>{
-    const src=clone(data.exercises[name]||{weight:0,weights:[0,0,0],reps:[10,10,10],best:'未記録',oneRM:0,last:'',target:12});
-    const reps=clone(src.reps||[0,0,0]);
-    const weights=clone(src.weights||reps.map(()=>Number(src.weight)||0));
-    return {name,...src,step:Number(data.weightStep),currentReps:reps,currentWeights:weights,completed:reps.map(()=>false),feeling:'普通',acceptedNext:null};
-  })};
+  workout={parts:[...selectedParts],start:Date.now(),exercises:ex.map(createWorkoutExercise)};
   currentIndex=0;show('workoutView');renderWorkout();
 }
 function renderWorkout(){
@@ -239,7 +298,9 @@ function exercisePage(x,i){
   const allDone=x.completed.every(Boolean);
   const achieved=x.currentReps.every(r=>Number(r)>=Number(x.target)) && allDone;
   const base=Math.max(...x.currentWeights.map(Number));
-  const suggestion=achieved?`<div class="suggestion"><b>${x.target}回 × ${x.currentReps.length}セット達成 🎉</b><div class="sub" style="margin-top:4px">次回の基準重量を ${base+x.step}kg に上げてみますか？</div><div class="suggest-actions"><button data-next="yes">次回上げる</button><button data-next="no">今回は据え置き</button></div></div>`:'';
+  const suggestedWeight=Math.round((base+x.step)*100)/100;
+  const decisionText=x.decision==='yes'?`✓ 次回は ${x.acceptedNext}kg に設定しました`:x.decision==='no'?'✓ 今回は据え置きに設定しました':'';
+  const suggestion=achieved?`<div class="suggestion"><b>${x.target}回 × ${x.currentReps.length}セット達成 🎉</b><div class="sub" style="margin-top:4px">次回の基準重量を ${suggestedWeight}kg に上げてみますか？</div><div class="suggest-actions"><button type="button" class="${x.decision==='yes'?'chosen':''}" data-next="yes">次回上げる</button><button type="button" class="${x.decision==='no'?'chosen':''}" data-next="no">今回は据え置き</button></div>${decisionText?`<div class="selected-result">${decisionText}</div>`:''}</div>`:'';
   div.innerHTML=`<div class="card exercise-card">
     <div class="ex-top"><div class="ex-title"><h3>${htmlEscape(x.name)}</h3><span class="tag ${allDone?'done-badge':''}">${allDone?'✓ 完了':(x.last?'前回 '+daysLabel(x.last)+'前':'未記録')}</span></div><div class="tag">目標 ${x.target} reps</div></div>
     <div class="metrics"><div class="metric"><b>${x.last?x.oneRM+'kg':'―'}</b><span>推定1RM</span></div><div class="metric"><b>${x.best}</b><span>自己ベスト</span></div><div class="metric"><b>${daysLabel(x.last)}</b><span>前回から</span></div></div>
@@ -249,6 +310,7 @@ function exercisePage(x,i){
     <div class="set-controls"><div class="count">セット数：<strong>${x.currentReps.length}</strong></div><div class="set-buttons"><button type="button" data-setchange="-1" ${x.currentReps.length<=1?'disabled':''} aria-label="セットを1つ減らす">−</button><button type="button" data-setchange="1" ${x.currentReps.length>=20?'disabled':''} aria-label="セットを1つ増やす">＋</button></div></div>
     <div class="feel"><div class="feel-label">今日の感覚</div><div class="feelBtns">${['重い','普通','軽い'].map(f=>`<button data-feel="${f}" class="${x.feeling===f?'active':''}">${f}</button>`).join('')}</div></div>
     ${suggestion}
+    <div class="note-wrap"><div class="note-label"><label for="note-${i}">種目メモ（次回も表示）</label><span><span class="note-length">${(x.note||'').length}</span>/20</span></div><textarea class="note-input" id="note-${i}" maxlength="20" rows="2" placeholder="例：フォームを意識">${htmlEscape(x.note||'')}</textarea></div>
   </div>`;
   div.querySelectorAll('[data-setchange]').forEach(b=>b.onclick=e=>{
     const delta=Number(e.currentTarget.dataset.setchange);
@@ -261,16 +323,22 @@ function exercisePage(x,i){
       if(x.completed[x.completed.length-1] && !confirm('最後の完了済みセットを削除しますか？'))return;
       x.currentWeights.pop();x.currentReps.pop();x.completed.pop();
     }
-    x.acceptedNext=null;
+    x.acceptedNext=null;x.decision=null;
     renderWorkout();
   });
-  div.querySelectorAll('[data-adjust]').forEach(b=>b.onclick=e=>{const s=Number(e.currentTarget.dataset.adjust);const direction=Number(e.currentTarget.dataset.delta);const next=Math.max(0,Math.round((Number(x.currentWeights[s])+direction*Number(data.weightStep))*100)/100);x.currentWeights[s]=next;x.acceptedNext=null;renderWorkout()});
-  div.querySelectorAll('[data-repadjust]').forEach(b=>b.onclick=e=>{const n=Number(e.currentTarget.dataset.repadjust);const d=Number(e.currentTarget.dataset.delta);x.currentReps[n]=Math.max(0,(Number(x.currentReps[n])||0)+d);x.acceptedNext=null;renderWorkout()});
+  div.querySelectorAll('[data-adjust]').forEach(b=>b.onclick=e=>{const s=Number(e.currentTarget.dataset.adjust);const direction=Number(e.currentTarget.dataset.delta);const next=Math.max(0,Math.round((Number(x.currentWeights[s])+direction*Number(data.weightStep))*100)/100);x.currentWeights[s]=next;x.acceptedNext=null;x.decision=null;renderWorkout()});
+  div.querySelectorAll('[data-repadjust]').forEach(b=>b.onclick=e=>{const n=Number(e.currentTarget.dataset.repadjust);const d=Number(e.currentTarget.dataset.delta);x.currentReps[n]=Math.max(0,(Number(x.currentReps[n])||0)+d);x.acceptedNext=null;x.decision=null;renderWorkout()});
   div.querySelectorAll('[data-r]').forEach(inp=>inp.onchange=e=>{x.currentReps[+e.target.dataset.r]=Number(e.target.value)||0;renderWorkout()});
-  div.querySelectorAll('[data-w]').forEach(inp=>inp.onchange=e=>{x.currentWeights[+e.target.dataset.w]=Math.max(0,Number(e.target.value)||0);x.acceptedNext=null;renderWorkout()});
+  div.querySelectorAll('[data-w]').forEach(inp=>inp.onchange=e=>{x.currentWeights[+e.target.dataset.w]=Math.max(0,Number(e.target.value)||0);x.acceptedNext=null;x.decision=null;renderWorkout()});
   div.querySelectorAll('[data-c]').forEach(b=>b.onclick=e=>{const s=+e.currentTarget.dataset.c;x.completed[s]=!x.completed[s];renderWorkout()});
   div.querySelectorAll('[data-feel]').forEach(b=>b.onclick=e=>{x.feeling=e.currentTarget.dataset.feel;renderWorkout()});
-  div.querySelectorAll('[data-next]').forEach(b=>b.onclick=e=>{x.acceptedNext=e.currentTarget.dataset.next==='yes'?Math.round((base+x.step)*100)/100:null;renderWorkout()});
+  div.querySelectorAll('[data-next]').forEach(b=>b.onclick=e=>{
+    x.decision=e.currentTarget.dataset.next;
+    x.acceptedNext=x.decision==='yes'?Math.round((base+x.step)*100)/100:null;
+    renderWorkout();
+  });
+  const noteInput=div.querySelector('.note-input');
+  noteInput.addEventListener('input',e=>{x.note=e.target.value.slice(0,20);div.querySelector('.note-length').textContent=x.note.length});
   return div;
 }
 function go(i){currentIndex=Math.max(0,Math.min(workout.exercises.length-1,i));renderWorkout()}
@@ -284,7 +352,7 @@ function finishWorkout(){
     if(bestSet){prs++;x.oneRM=bestEst;x.best=`${bestSet.w}kg × ${bestSet.rr}`}
     let nextWeights=clone(x.currentWeights);
     if(x.acceptedNext!=null) nextWeights=nextWeights.map(()=>x.acceptedNext);
-    data.exercises[x.name]={weight:nextWeights[0]||0,weights:nextWeights,reps:clone(x.currentReps),best:x.best,oneRM:x.oneRM,last:TODAY,target:x.target,step:x.step};
+    data.exercises[x.name]={weight:nextWeights[0]||0,weights:nextWeights,reps:clone(x.currentReps),best:x.best,oneRM:x.oneRM,last:TODAY,target:x.target,step:x.step,note:x.note||''};
   });
   if(performed.length)workout.parts.forEach(p=>{if(workout.exercises.some(x=>data.parts[p].exercises.includes(x.name)&&x.completed.some(Boolean)))data.parts[p].last=TODAY});
   const record={date:TODAY,parts:workout.parts,exercises:performed.length,sets:totalSets,volume:Math.round(volume),prs};if(performed.length)data.history.unshift(record);data.history=data.history.slice(0,20);save();
@@ -295,7 +363,7 @@ function renderSummary(r,performed){
   document.getElementById('summaryGrid').innerHTML=`<div class="summary-item"><b>${r.exercises}</b><span>種目</span></div><div class="summary-item"><b>${r.sets}</b><span>完了セット</span></div><div class="summary-item"><b>${r.volume.toLocaleString()}kg</b><span>総ボリューム</span></div><div class="summary-item"><b>${r.prs}</b><span>PR更新</span></div>`;
   const next=performed.filter(x=>x.acceptedNext!=null).map(x=>`${x.name}: 次回 ${x.acceptedNext}kg`);
   document.getElementById('prBox').innerHTML=next.length?`<div class="pr"><strong>次回の提案</strong><br>${next.join('<br>')}</div>`:'';
-  document.getElementById('summaryHistory').innerHTML=performed.map(x=>`${x.name}：${x.currentReps.map((r,i)=>`${x.currentWeights[i]}kg × ${r}`).join(' / ')}（${x.feeling}）`).join('<br>');
+  document.getElementById('summaryHistory').innerHTML=performed.map(x=>`${htmlEscape(x.name)}：${x.currentReps.map((r,i)=>`${x.currentWeights[i]}kg × ${r}`).join(' / ')}（${x.feeling}）${x.note?' / メモ：'+htmlEscape(x.note):''}`).join('<br>');
 }
 function show(id){['homeView','settingsView','workoutView','summaryView'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));window.scrollTo({top:0,behavior:'smooth'})}
 document.getElementById('weightStep').onchange=e=>{data.weightStep=Number(e.target.value);save()};
@@ -311,11 +379,17 @@ document.getElementById('addExerciseForm').onsubmit=e=>{
   input.value='';save();renderSettings();input.focus();
 };
 document.getElementById('startBtn').onclick=startWorkout;
+document.getElementById('addDuringWorkout').onclick=openAddDialog;
+document.getElementById('duringPart').onchange=updateExistingOptions;
+document.getElementById('duringExisting').onchange=()=>{if(document.getElementById('duringExisting').value)document.getElementById('duringNew').value=''};
+document.getElementById('cancelAdd').onclick=closeAddDialog;
+document.getElementById('confirmAdd').onclick=addDuringWorkout;
+document.getElementById('addExerciseDialog').addEventListener('click',e=>{if(e.target.id==='addExerciseDialog')closeAddDialog()});
 document.getElementById('backHome').onclick=()=>{if(confirm('ホームに戻りますか？入力中の内容は失われます。')){show('homeView')}};
 document.getElementById('prevEx').onclick=()=>go(currentIndex-1);document.getElementById('nextEx').onclick=()=>go(currentIndex+1);document.getElementById('finishBtn').onclick=finishWorkout;
 document.getElementById('doneBtn').onclick=()=>{selectedParts.clear();show('homeView');renderHome()};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('すべての筋トレ記録・登録種目・設定を削除して初期化しますか？この操作は元に戻せません。')){try{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem('liftflow-data')}catch(e){}data=clone(DEFAULT_DATA);selectedParts.clear();settingsPart='胸';renderHome();alert('データを初期化しました。')}};
-let sx=0;const cw=document.getElementById('carouselWrap');cw.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});cw.addEventListener('touchend',e=>{if(e.target.closest('input,button,select'))return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>55)go(currentIndex+(dx<0?1:-1))},{passive:true});
+let sx=0;const cw=document.getElementById('carouselWrap');cw.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});cw.addEventListener('touchend',e=>{if(e.target.closest('input,button,select,textarea'))return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>55)go(currentIndex+(dx<0?1:-1))},{passive:true});
 renderHome();
 </script>
 </body>
